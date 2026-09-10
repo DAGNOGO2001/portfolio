@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ContactController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 
@@ -22,6 +21,13 @@ use App\Http\Controllers\Admin\CertificationController;
 |--------------------------------------------------------------------------
 */
 
+
+/*
+|--------------------------------------------------------------------------
+| ACCUEIL
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', [HomeController::class, 'index'])
     ->name('home');
 
@@ -34,6 +40,33 @@ Route::get('/', [HomeController::class, 'index'])
 
 Route::post('/contact', [MessageController::class, 'store'])
     ->name('contact.store');
+
+
+/*
+|--------------------------------------------------------------------------
+| FICHIERS STORAGE
+|--------------------------------------------------------------------------
+|
+| Cette route permet à Laravel de servir les fichiers présents
+| dans storage/app/public lorsque le lien symbolique
+| public/storage ne fonctionne pas sur l'hébergement.
+|
+| Exemple :
+| /storage/certifications/image.jpg
+|
+*/
+
+Route::get('/storage/{path}', function ($path) {
+
+    $file = storage_path('app/public/' . $path);
+
+    if (!file_exists($file)) {
+        abort(404);
+    }
+
+    return response()->file($file);
+
+})->where('path', '.*');
 
 
 /*
@@ -58,14 +91,33 @@ Route::get('/dashboard', function () {
 
 Route::middleware('auth')->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | MODIFIER LE PROFIL
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | METTRE À JOUR LE PROFIL
+    |--------------------------------------------------------------------------
+    */
 
     Route::patch('/profile', [ProfileController::class, 'update'])
         ->name('profile.update');
 
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUPPRIMER LE PROFIL
+    |--------------------------------------------------------------------------
+    */
+
+    Route::delete('/profile', [ProfileController::class, 'destroy']);
 
 });
 
@@ -74,14 +126,16 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 | ESPACE ADMINISTRATION
 |--------------------------------------------------------------------------
+|
+| Toutes les routes de cette partie nécessitent
+| que l'utilisateur soit connecté.
+|
 */
 
-Route::middleware(['auth'])
+Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-
-
         /*
         |--------------------------------------------------------------------------
         | TABLEAU DE BORD ADMIN
@@ -97,7 +151,7 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
-        | GESTION DES PROJETS
+        | PROJETS
         |--------------------------------------------------------------------------
         */
 
@@ -109,7 +163,7 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
-        | GESTION DES COMPÉTENCES
+        | COMPÉTENCES
         |--------------------------------------------------------------------------
         */
 
@@ -121,7 +175,7 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
-        | GESTION DES EXPÉRIENCES
+        | EXPÉRIENCES
         |--------------------------------------------------------------------------
         */
 
@@ -133,7 +187,7 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
-        | GESTION DES FORMATIONS
+        | FORMATIONS
         |--------------------------------------------------------------------------
         */
 
@@ -145,7 +199,7 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
-        | GESTION DES SERVICES
+        | SERVICES
         |--------------------------------------------------------------------------
         */
 
@@ -157,14 +211,36 @@ Route::middleware(['auth'])
 
         /*
         |--------------------------------------------------------------------------
+        | CERTIFICATIONS
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource(
+            'certifications',
+            CertificationController::class
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
         | PARAMÈTRES DU PORTFOLIO
         |--------------------------------------------------------------------------
+        */
+
+
+        /*
+        | Afficher les paramètres
         */
 
         Route::get(
             '/parametres',
             [ParametreController::class, 'edit']
         )->name('parametres.edit');
+
+
+        /*
+        | Enregistrer les paramètres
+        */
 
         Route::put(
             '/parametres',
@@ -176,26 +252,15 @@ Route::middleware(['auth'])
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN - CERTIFICATIONS
-|--------------------------------------------------------------------------
-*/
-
-Route::prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-
-        Route::resource(
-            'certifications',
-            CertificationController::class
-        );
-
-    });
-
-
-/*
-|--------------------------------------------------------------------------
 | AUTHENTIFICATION
 |--------------------------------------------------------------------------
+|
+| Login
+| Register
+| Logout
+| Mot de passe oublié
+| Réinitialisation du mot de passe
+|
 */
 
 require __DIR__.'/auth.php';
